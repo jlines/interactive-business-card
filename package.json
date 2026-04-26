@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "test": "node --test tests/**/*.test.ts",
+    "test": "node --import tsx --test tests/**/*.test.ts",
     "tokens:seed": "node --import tsx scripts/seed-demo-token.ts",
     "tokens:generate": "node --import tsx scripts/generate-token.ts",
     "tokens:revoke": "node --import tsx scripts/revoke-token.ts"

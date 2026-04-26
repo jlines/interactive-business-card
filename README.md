@@ -11,8 +11,10 @@ A private, token-gated chat app that works like an interactive business card for
 ## Proposed stack
 - Next.js App Router
 - TypeScript
-- local token/session storage behind a small server-side adapter
-- cloud inference provider behind one app-owned API route
+- AWS Lambda container image for low-traffic production runtime
+- DynamoDB on-demand for token/session/message persistence
+- AWS Secrets Manager for runtime secrets
+- OpenRouter first behind the app-owned inference seam; Bedrock later behind the same interface
 
 ## Current layout
 ```text
@@ -40,10 +42,21 @@ A private, token-gated chat app that works like an interactive business card for
 - `src/lib/session/store.ts` is the future server-side session boundary.
 - `src/lib/ai/prompt.ts` assembles named prompt layers from context files, token metadata, and conversation history.
 - `src/lib/ai/client.ts` defines the provider-agnostic inference interface; OpenRouter is first, Bedrock is a later adapter.
-- `src/lib/db/schema.ts` documents the intended local token/session/message records.
+- `src/lib/db/schema.ts` documents the intended DynamoDB token/session/message records.
+
+## Operational token scripts
+Run scripts with the same persistence boundary the app uses. For local development, set `PERSISTENCE_ADAPTER=file`; for AWS, set `PERSISTENCE_ADAPTER=dynamodb` plus DynamoDB/AWS credentials.
+
+```bash
+npm run tokens:seed
+npm run tokens:generate -- --label "Acme follow-up" --audience "operations lead"
+npm run tokens:revoke -- --token <raw-token>
+```
+
+Raw token values are printed only for operator use and are never persisted.
 
 ## First implementation slices
-1. Implement token persistence with hashing, lifecycle checks, and seed/generate/revoke scripts.
-2. Wire `/api/session` to create a durable token-backed session.
-3. Wire `/api/chat` to authorize sessions, assemble prompts, and call OpenRouter.
-4. Add focused tests for fail-closed access and prompt assembly.
+1. Package/deploy the Lambda container and DynamoDB table.
+2. Connect the browser chat shell to `/api/session` and `/api/chat`.
+3. Add operational runbooks for tokens, backups, and secret rotation.
+4. Add Bedrock only when there is a concrete need.

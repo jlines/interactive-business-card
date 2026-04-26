@@ -1,16 +1,7 @@
+import { createTokenStore, type TokenStore } from '@/lib/db/client';
 import type { TokenRecord, TokenValidationFailureReason, TokenValidationResult } from '@/types/chat';
 
 const failClosedMessage = 'This entry link is unavailable.';
-
-const demoToken: TokenRecord = {
-  id: 'demo-token',
-  tokenHash: 'demo-token-hash-placeholder',
-  label: 'demo business card',
-  audienceHint: 'general warm lead',
-  customOpener: 'Glad you scanned this — tell me a little about what you are trying to build or simplify.',
-  status: 'active',
-  createdAt: '2026-04-25T00:00:00.000Z',
-};
 
 function invalidToken(reason: TokenValidationFailureReason): TokenValidationResult {
   return { valid: false, reason, publicMessage: failClosedMessage };
@@ -40,11 +31,14 @@ function tokenRecordIsUsable(record: TokenRecord, now = new Date()) {
  * Server-side token gate for QR entry.
  *
  * This is the only place route handlers and pages should turn an opaque QR token
- * into safe application metadata. The current scaffold has one deterministic
- * local demo token; the next persistence pass should replace that lookup with a
- * hashed-token store while preserving the fail-closed return type.
+ * into safe application metadata. The raw token is normalized and plausibility
+ * checked before a store lookup; persistence hashes it with TOKEN_PEPPER and
+ * never stores raw token values.
  */
-export async function validateEntryToken(token: string | null | undefined): Promise<TokenValidationResult> {
+export async function validateEntryToken(
+  token: string | null | undefined,
+  tokenStore: TokenStore = createTokenStore(),
+): Promise<TokenValidationResult> {
   const normalizedToken = normalizeToken(token);
 
   if (!normalizedToken) {
@@ -55,9 +49,11 @@ export async function validateEntryToken(token: string | null | undefined): Prom
     return invalidToken('malformed');
   }
 
-  if (normalizedToken === 'demo-card') {
-    return tokenRecordIsUsable(demoToken);
+  const record = await tokenStore.getByRawToken(normalizedToken);
+
+  if (!record) {
+    return invalidToken('not_found');
   }
 
-  return invalidToken('not_found');
+  return tokenRecordIsUsable(record);
 }

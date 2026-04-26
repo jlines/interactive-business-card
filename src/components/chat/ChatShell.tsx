@@ -16,7 +16,8 @@ export function ChatShell({ openingContext, messages = [], tokenRecord }: ChatSh
         <h2 style={{ margin: '0.35rem 0' }}>Start here</h2>
         <p style={{ margin: 0 }}>{openingContext.opener}</p>
         <p style={{ color: 'var(--muted)', marginTop: 12 }}>
-          Session will be bound to token record <code>{tokenRecord.id}</code>; this is not a public chat endpoint.
+          This private chat opens a server-owned session before any assistant response. If setup takes a moment,
+          you can still use the prompt above to frame what you want to discuss.
         </p>
       </header>
       <MessageList messages={messages} />

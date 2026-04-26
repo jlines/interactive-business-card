@@ -1,13 +1,14 @@
-import type { ChatSessionStatus, TokenStatus } from '@/types/chat';
+import type { ChatRole, ChatSessionStatus, TokenStatus } from '@/types/chat';
 
 /**
- * SQLite-oriented schema contract for local persistence.
+ * DynamoDB-oriented persistence contract for the low-traffic AWS runtime.
  *
- * This file is not a migration system yet. It documents the durable records the
- * app expects so the first storage implementation can be small and intentional.
+ * This file is not an infrastructure/migration system. It documents the durable
+ * records the app expects so route handlers can stay behind repository/store
+ * interfaces rather than depending on AWS SDK shapes.
  */
 export const tokenRecordSchema = {
-  table: 'entry_tokens',
+  table: 'DYNAMODB_TABLE_NAME single-table item: PK=TOKEN#<tokenHash>, SK=TOKEN',
   columns: {
     id: 'text primary key',
     tokenHash: 'text unique not null',
@@ -27,7 +28,7 @@ export const tokenRecordSchema = {
 } as const;
 
 export const chatSessionSchema = {
-  table: 'chat_sessions',
+  table: 'DYNAMODB_TABLE_NAME single-table item: PK=SESSION#<sessionId>, SK=SESSION',
   columns: {
     id: 'text primary key',
     tokenId: 'text not null references entry_tokens(id)',
@@ -39,7 +40,7 @@ export const chatSessionSchema = {
 } as const;
 
 export const chatMessageSchema = {
-  table: 'chat_messages',
+  table: 'DYNAMODB_TABLE_NAME single-table item: PK=SESSION#<sessionId>, SK=MESSAGE#<createdAt>#<messageId>',
   columns: {
     id: 'text primary key',
     sessionId: 'text not null references chat_sessions(id)',
@@ -68,4 +69,12 @@ export type ChatSessionRow = {
   status: ChatSessionStatus;
   createdAt: string;
   lastSeenAt?: string;
+};
+
+export type ChatMessageRow = {
+  id: string;
+  sessionId: string;
+  role: ChatRole;
+  content: string;
+  createdAt: string;
 };

@@ -1,42 +1,38 @@
 # Next Steps
 
-## Scaffold verification snapshot (2026-04-25)
+## AWS low-traffic runtime scaffold snapshot (2026-04-26)
 
-The durable scaffold pass is mostly in place and aligns with the architecture prompt in these areas:
+The scaffold now aligns with the approved AWS low-traffic direction:
 
-- Token-gated entry route and fail-closed behavior (`/c/[token]`, `/api/session`, `/api/chat`).
-- Durable domain types for token validation, opening context, and chat/session boundaries.
-- Layered prompt assembly contract (`base system`, `business context`, `token personalization policy`, `token metadata`, `conversation history`).
-- Provider-agnostic inference seam with explicit OpenRouter-first adapter path and Bedrock placeholder.
-- Updated architecture docs and ADR for inference provider boundary.
+- AWS primary runtime direction is recorded in ADR 0004.
+- Architecture docs describe Lambda container + DynamoDB request flow.
+- Token validation resolves persisted token metadata and fails closed.
+- Token persistence hashes with `TOKEN_PEPPER`; raw tokens are not stored.
+- Token lifecycle scripts seed, generate, and revoke through the same store boundary the app uses.
+- `/api/session` creates durable token-backed sessions.
+- `/api/chat` authorizes sessions before prompt assembly, provider calls, and message persistence.
+- Focused tests cover token fail-closed behavior, chat session authorization failures, and prompt layer ordering.
 
-## Remaining gaps before feature work
+## Remaining gaps before production
 
-1. **Token persistence is still placeholder-only**
-   - `src/lib/auth/token.ts` validates only a hardcoded `demo-card` token.
-   - `src/lib/db/client.ts` is a TODO seam (no SQLite implementation yet).
+1. **Deployment infrastructure is not implemented**
+   - Add Lambda container packaging, DynamoDB table creation, IAM permissions, and Secrets Manager wiring.
 
-2. **Session boundary is not durable yet**
-   - `src/lib/session/store.ts` is a TODO seam.
-   - `/api/session` returns `501` for valid tokens until session creation exists.
+2. **Browser chat flow is still mostly static**
+   - `ChatShell` renders useful entry copy, but it does not yet open a session or send chat turns from the client.
 
-3. **Chat authorization/inference path is not wired**
-   - `/api/chat` checks presence of `sessionId` but does not authorize via store.
-   - Prompt bundle + inference client are defined but not executed in route flow.
+3. **DynamoDB adapter needs AWS integration validation**
+   - The adapter is implemented without an SDK to avoid leaking AWS shapes, but it should be smoke-tested against a real on-demand table.
 
-4. **Operational token scripts are stubs**
-   - `scripts/seed-demo-token.ts`
-   - `scripts/generate-token.ts`
-   - `scripts/revoke-token.ts`
+4. **Operational runbooks are missing**
+   - Document token generation/revocation, backups, secret rotation, and recovery procedures.
 
-5. **Tests are not implemented yet**
-   - No coverage for fail-closed token/session behavior.
-   - No coverage for prompt-layer assembly contract.
+5. **Bedrock remains a placeholder**
+   - Add only if/when there is a concrete reason to move inference to AWS-native models.
 
 ## Recommended implementation order
 
-1. Implement local SQLite token store + token hashing (`TOKEN_PEPPER`) in `src/lib/db/client.ts`.
-2. Implement token lifecycle scripts (seed/generate/revoke) against that store.
-3. Implement durable session store in `src/lib/session/store.ts` and return `sessionId` from `/api/session`.
-4. Update `/api/chat` to authorize session, assemble prompt, call inference client, and append messages.
-5. Add focused tests for token/session fail-closed behavior and prompt-layer ordering.
+1. Add deployment packaging/IaC for Lambda container, DynamoDB, IAM, and Secrets Manager.
+2. Wire the client chat UI to `/api/session` and `/api/chat` with pending/error states that do not expose internals.
+3. Smoke-test DynamoDB persistence with seeded tokens and a real chat turn.
+4. Add runbooks for token lifecycle and production operations.

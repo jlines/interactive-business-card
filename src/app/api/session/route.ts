@@ -1,5 +1,6 @@
 import { validateEntryToken } from '@/lib/auth/token';
 import { buildOpeningContext } from '@/lib/session/opening';
+import { createChatSessionStore } from '@/lib/session/store';
 
 async function readSessionRequest(request: Request): Promise<{ token?: string }> {
   try {
@@ -20,9 +21,8 @@ async function readSessionRequest(request: Request): Promise<{ token?: string }>
 /**
  * Opens the server-owned session boundary for a valid QR token.
  *
- * The route validates the token before doing anything else. Until durable session
- * persistence is implemented, valid tokens receive an explicit 501 rather than a
- * fake client-side session that could hide an authorization gap.
+ * The route validates the token before creating durable session state. Invalid
+ * tokens all receive the same public response so lookup details stay private.
  */
 export async function POST(request: Request) {
   const { token } = await readSessionRequest(request);
@@ -32,13 +32,11 @@ export async function POST(request: Request) {
     return Response.json({ ok: false, message: tokenResult.publicMessage }, { status: 401 });
   }
 
-  return Response.json(
-    {
-      ok: false,
-      message: 'Token is valid, but durable session creation is not implemented yet.',
-      next: 'Implement src/lib/session/store.ts and return a server-backed session id here.',
-      openingContext: buildOpeningContext(tokenResult.record),
-    },
-    { status: 501 },
-  );
+  const session = await createChatSessionStore().createForToken({ tokenId: tokenResult.record.id });
+
+  return Response.json({
+    ok: true,
+    sessionId: session.id,
+    openingContext: buildOpeningContext(tokenResult.record),
+  });
 }

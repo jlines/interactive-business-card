@@ -10,6 +10,10 @@ const envSchema = z.object({
   OPENROUTER_MODEL: z.string().optional(),
   BEDROCK_REGION: z.string().optional(),
   BEDROCK_MODEL_ID: z.string().optional(),
+  PERSISTENCE_ADAPTER: z.enum(['dynamodb', 'file', 'memory']).optional(),
+  DYNAMODB_TABLE_NAME: z.string().optional(),
+  DYNAMODB_REGION: z.string().optional(),
+  LOCAL_DATA_FILE: z.string().optional(),
 });
 
 export const env = envSchema.parse({
@@ -21,6 +25,10 @@ export const env = envSchema.parse({
   OPENROUTER_MODEL: process.env.OPENROUTER_MODEL,
   BEDROCK_REGION: process.env.BEDROCK_REGION,
   BEDROCK_MODEL_ID: process.env.BEDROCK_MODEL_ID,
+  PERSISTENCE_ADAPTER: process.env.PERSISTENCE_ADAPTER,
+  DYNAMODB_TABLE_NAME: process.env.DYNAMODB_TABLE_NAME,
+  DYNAMODB_REGION: process.env.DYNAMODB_REGION,
+  LOCAL_DATA_FILE: process.env.LOCAL_DATA_FILE,
 });
 
 /**

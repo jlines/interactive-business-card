@@ -14,9 +14,13 @@ coverage/
 
 # data/runtime
 runtime/
+.data/
 *.sqlite
 *.sqlite-shm
 *.sqlite-wal
+
+# TypeScript
+*.tsbuildinfo
 
 # logs
 npm-debug.log*
