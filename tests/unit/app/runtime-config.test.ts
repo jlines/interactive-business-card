@@ -16,6 +16,8 @@ test('getProviderRuntimeConfig returns openrouter mode when api key is present',
     openRouterApiKey: 'key',
     bedrockRegion: undefined,
     bedrockModelId: undefined,
+    ollamaBaseUrl: 'http://127.0.0.1:11434',
+    ollamaModel: 'llama3.1:8b',
     canCallProvider: true,
   });
 });
@@ -33,7 +35,18 @@ test('getProviderRuntimeConfig keeps bedrock mode even without api key', () => {
   assert.equal(config.canCallProvider, true);
 });
 
-test('getProviderRuntimeConfig disables remote calls when config is incomplete', () => {
+test('getProviderRuntimeConfig resolves ollama mode with local defaults', () => {
+  const config = getProviderRuntimeConfig({
+    MODEL_PROVIDER: 'ollama',
+  });
+
+  assert.equal(config.provider, 'ollama');
+  assert.equal(config.ollamaBaseUrl, 'http://127.0.0.1:11434');
+  assert.equal(config.ollamaModel, 'llama3.1:8b');
+  assert.equal(config.canCallProvider, true);
+});
+
+test('getProviderRuntimeConfig disables remote calls when openrouter config is incomplete', () => {
   const config = getProviderRuntimeConfig({
     MODEL_PROVIDER: 'openrouter',
     OPENROUTER_MODEL: 'openai/gpt-4.1-mini',

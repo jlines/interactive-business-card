@@ -5,14 +5,14 @@ A private, token-gated chat app that works like an interactive business card for
 ## What this scaffold optimizes for
 - **Private entry only**: traffic begins at `/c/<token>` and should fail closed without a valid QR token.
 - **Personalized first impression**: each token can carry its own audience hint and custom opener.
-- **Simple inference layer**: start with a cloud model provider (OpenRouter or Bedrock) behind one server route.
+- **Simple inference layer**: start with one provider route and switch between OpenRouter, Bedrock, or local Ollama.
 - **Long-lived structure**: docs, context, app code, scripts, and tests each have a stable home from day one.
 
 ## Proposed stack
 - Next.js App Router
 - TypeScript
 - token/session storage behind a small server-side adapter (memory locally, DynamoDB in AWS)
-- cloud inference provider behind one app-owned API route (OpenRouter or Bedrock)
+- provider adapter behind one app-owned API route (OpenRouter, Bedrock, or local Ollama)
 - CloudFront in front of a Lambda container deployment, with optional WAF and origin protection
 
 ## Current layout
@@ -106,6 +106,27 @@ Failure responses:
 - Invalid JSON, schema failures, or empty messages: `400` with `{ "ok": false, "message": "Expected a sessionId and message." }`
 - Well-formed requests whose session is missing from server state, unknown, inactive, or closed: `401` with `{ "ok": false, "message": "A valid session is required." }`
 - Provider/runtime failures: `502` with `{ "ok": false, "message": "The chat service is unavailable." }`
+
+## Provider selection (including local Ollama)
+Set `MODEL_PROVIDER` to one of:
+- `openrouter` (requires `OPENROUTER_API_KEY`)
+- `bedrock` (requires `BEDROCK_REGION` and `BEDROCK_MODEL_ID`)
+- `ollama` (local, requires running Ollama at `OLLAMA_BASE_URL`, default `http://127.0.0.1:11434`)
+
+Example local Ollama config:
+
+```env
+MODEL_PROVIDER=ollama
+OLLAMA_BASE_URL=http://127.0.0.1:11434
+OLLAMA_MODEL=llama3.1:8b
+```
+
+And ensure the model is available:
+
+```bash
+ollama serve
+ollama pull llama3.1:8b
+```
 
 ## First implementation slices
 1. Define the token record format and validation flow.

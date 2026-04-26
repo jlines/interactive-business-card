@@ -9,7 +9,7 @@ type BedrockTestClient = {
 
 let bedrockClientForTests: BedrockTestClient | null = null;
 
-export type ProviderName = 'openrouter' | 'bedrock';
+export type ProviderName = 'openrouter' | 'bedrock' | 'ollama';
 
 export type PromptBundle = {
   systemPrompt: string;
@@ -89,6 +89,63 @@ export async function sendChatToProvider(promptBundle: PromptBundle) {
           runtimeConfig,
           client: bedrockClientForTests ?? undefined,
         });
+      } catch (error) {
+        if (failLoudly) {
+          throw error;
+        }
+      }
+    }
+  }
+
+  if (runtimeConfig.provider === 'ollama') {
+    if (!runtimeConfig.canCallProvider || !runtimeConfig.ollamaBaseUrl || !runtimeConfig.ollamaModel) {
+      if (failLoudly) {
+        throw new Error('Ollama is selected but OLLAMA_BASE_URL or OLLAMA_MODEL is missing.');
+      }
+    } else {
+      try {
+        const response = await fetch(`${runtimeConfig.ollamaBaseUrl.replace(/\/$/, '')}/api/chat`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: runtimeConfig.ollamaModel,
+            stream: false,
+            messages: [
+              {
+                role: 'system',
+                content: [
+                  promptBundle.systemPrompt,
+                  promptBundle.businessContext,
+                  promptBundle.personalizationNotes,
+                ].join('\n\n'),
+              },
+              ...promptBundle.messages.map((message) => ({
+                role: message.role,
+                content: message.content,
+              })),
+            ],
+          }),
+        });
+
+        if (!response.ok) {
+          const body = await response.text().catch(() => '');
+          throw new Error(`Ollama request failed with status ${response.status}${body ? `: ${body}` : ''}`);
+        }
+
+        const payload = await response.json() as {
+          message?: {
+            content?: string;
+          };
+        };
+
+        const content = payload.message?.content?.trim();
+        if (content) {
+          return content;
+        }
+
+        throw new Error('Ollama returned no assistant content.');
       } catch (error) {
         if (failLoudly) {
           throw error;
