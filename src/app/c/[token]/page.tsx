@@ -1,5 +1,6 @@
 import { PersonalizedWelcome } from '@/components/entry/PersonalizedWelcome';
 import { validateEntryToken } from '@/lib/auth/token';
+import { createSession } from '@/lib/session/store';
 
 export default async function TokenEntryPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
@@ -16,5 +17,7 @@ export default async function TokenEntryPage({ params }: { params: Promise<{ tok
     );
   }
 
-  return <PersonalizedWelcome tokenRecord={result.record} />;
+  const session = await createSession(result.record);
+
+  return <PersonalizedWelcome tokenRecord={result.record} initialSession={session} />;
 }

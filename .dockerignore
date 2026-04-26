@@ -1,0 +1,9 @@
+node_modules
+.next
+cdk.out
+coverage
+runtime
+.git
+.env
+.env.*
+npm-debug.log*

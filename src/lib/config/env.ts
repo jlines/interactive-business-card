@@ -9,6 +9,11 @@ const envSchema = z.object({
   OPENROUTER_MODEL: z.string().optional(),
   BEDROCK_REGION: z.string().optional(),
   BEDROCK_MODEL_ID: z.string().optional(),
+  SESSION_TABLE_NAME: z.string().optional(),
+  TOKEN_TABLE_NAME: z.string().optional(),
+  SESSION_TTL_HOURS: z.string().optional(),
+  ORIGIN_VERIFY_HEADER: z.string().optional(),
+  ORIGIN_VERIFY_TOKEN: z.string().optional(),
 });
 
 export const env = envSchema.parse({
@@ -20,4 +25,9 @@ export const env = envSchema.parse({
   OPENROUTER_MODEL: process.env.OPENROUTER_MODEL,
   BEDROCK_REGION: process.env.BEDROCK_REGION,
   BEDROCK_MODEL_ID: process.env.BEDROCK_MODEL_ID,
+  SESSION_TABLE_NAME: process.env.SESSION_TABLE_NAME,
+  TOKEN_TABLE_NAME: process.env.TOKEN_TABLE_NAME,
+  SESSION_TTL_HOURS: process.env.SESSION_TTL_HOURS,
+  ORIGIN_VERIFY_HEADER: process.env.ORIGIN_VERIFY_HEADER,
+  ORIGIN_VERIFY_TOKEN: process.env.ORIGIN_VERIFY_TOKEN,
 });

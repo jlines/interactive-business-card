@@ -6,6 +6,8 @@ node_modules/
 dist/
 build/
 coverage/
+cdk.out/
+tsconfig.tsbuildinfo
 
 # env
 .env

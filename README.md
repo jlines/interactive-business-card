@@ -11,8 +11,9 @@ A private, token-gated chat app that works like an interactive business card for
 ## Proposed stack
 - Next.js App Router
 - TypeScript
-- local token/session storage behind a small server-side adapter
-- cloud inference provider behind one app-owned API route
+- token/session storage behind a small server-side adapter (memory locally, DynamoDB in AWS)
+- cloud inference provider behind one app-owned API route (OpenRouter or Bedrock)
+- CloudFront in front of a Lambda container deployment, with optional WAF and origin protection
 
 ## Current layout
 ```text
@@ -39,3 +40,9 @@ A private, token-gated chat app that works like an interactive business card for
 2. Add a local token store and one seed token.
 3. Render the gated chat shell at `/c/[token]`.
 4. Wire `/api/chat` to a cloud inference provider using repo context files.
+
+## Deployment
+- AWS CDK deployment scaffolding lives under `infra/`.
+- The current setup packages the Next.js app as a Lambda container image, fronts it with CloudFront, provisions DynamoDB tables for tokens/sessions, and can attach WAF + origin protection.
+- Use `npm run tokens:seed`, `npm run tokens:generate`, and `npm run tokens:revoke` to manage entry tokens against the configured backend.
+- See `docs/deployment/aws-cdk.md` for required Secrets Manager keys, synth-time env vars, and deploy commands.
