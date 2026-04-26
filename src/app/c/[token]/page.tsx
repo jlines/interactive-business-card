@@ -6,11 +6,13 @@ export default async function TokenEntryPage({ params }: { params: Promise<{ tok
   const result = await validateEntryToken(token);
 
   if (!result.valid) {
+    // Fail closed: never render chat UI or personalization details for an invalid,
+    // missing, expired, revoked, or malformed token.
     return (
       <main style={{ display: 'grid', placeItems: 'center', padding: '4rem 1.5rem' }}>
         <div style={{ maxWidth: 720 }}>
           <h1>Link unavailable</h1>
-          <p>This entry token is invalid, expired, or revoked.</p>
+          <p>{result.publicMessage}</p>
         </div>
       </main>
     );

@@ -29,13 +29,21 @@ A private, token-gated chat app that works like an interactive business card for
 ```
 
 ## Intended routes
-- `/` — operator landing page / project stub
-- `/c/[token]` — QR entrypoint, validates token and opens the personalized chat
-- `/api/session` — validates QR token and creates a server-backed session
-- `/api/chat` — handles chat turns and provider calls
+- `/` — operator landing page / project stub; not a public assistant
+- `/c/[token]` — QR entrypoint that validates the token before rendering personalized chat UI
+- `/api/session` — validates a QR token and should create/restore a server-backed session
+- `/api/chat` — handles chat turns only after resolving an authorized token-backed session
+
+## Durable scaffold seams
+- `src/lib/auth/token.ts` owns the fail-closed token gate and returns `TokenValidationResult`.
+- `src/lib/session/opening.ts` turns a valid token record into a personalized opening context.
+- `src/lib/session/store.ts` is the future server-side session boundary.
+- `src/lib/ai/prompt.ts` assembles named prompt layers from context files, token metadata, and conversation history.
+- `src/lib/ai/client.ts` defines the provider-agnostic inference interface; OpenRouter is first, Bedrock is a later adapter.
+- `src/lib/db/schema.ts` documents the intended local token/session/message records.
 
 ## First implementation slices
-1. Define the token record format and validation flow.
-2. Add a local token store and one seed token.
-3. Render the gated chat shell at `/c/[token]`.
-4. Wire `/api/chat` to a cloud inference provider using repo context files.
+1. Implement token persistence with hashing, lifecycle checks, and seed/generate/revoke scripts.
+2. Wire `/api/session` to create a durable token-backed session.
+3. Wire `/api/chat` to authorize sessions, assemble prompts, and call OpenRouter.
+4. Add focused tests for fail-closed access and prompt assembly.

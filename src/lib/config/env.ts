@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { InferenceProviderConfig } from '@/lib/ai/client';
 
 const envSchema = z.object({
   MODEL_PROVIDER: z.enum(['openrouter', 'bedrock']).default('openrouter'),
@@ -21,3 +22,25 @@ export const env = envSchema.parse({
   BEDROCK_REGION: process.env.BEDROCK_REGION,
   BEDROCK_MODEL_ID: process.env.BEDROCK_MODEL_ID,
 });
+
+/**
+ * Converts environment variables into the app-owned provider config shape.
+ * OpenRouter is the first implementation target; Bedrock remains a later adapter
+ * behind the same InferenceClient interface.
+ */
+export function getInferenceProviderConfig(): InferenceProviderConfig {
+  if (env.MODEL_PROVIDER === 'bedrock') {
+    return {
+      provider: 'bedrock',
+      region: env.BEDROCK_REGION,
+      modelId: env.BEDROCK_MODEL_ID,
+    };
+  }
+
+  return {
+    provider: 'openrouter',
+    apiKey: env.OPENROUTER_API_KEY,
+    model: env.OPENROUTER_MODEL || 'anthropic/claude-3.7-sonnet',
+    appName: 'interactive-business-card',
+  };
+}

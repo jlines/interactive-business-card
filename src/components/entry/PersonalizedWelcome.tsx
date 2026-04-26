@@ -1,9 +1,9 @@
-import { buildInitialOpener } from '@/lib/session/opening';
-import type { TokenRecord } from '@/types/chat';
 import { ChatShell } from '@/components/chat/ChatShell';
+import { buildOpeningContext } from '@/lib/session/opening';
+import type { TokenRecord } from '@/types/chat';
 
 export function PersonalizedWelcome({ tokenRecord }: { tokenRecord: TokenRecord }) {
-  const opener = buildInitialOpener(tokenRecord);
+  const openingContext = buildOpeningContext(tokenRecord);
 
   return (
     <main style={{ padding: '3rem 1.5rem' }}>
@@ -15,7 +15,7 @@ export function PersonalizedWelcome({ tokenRecord }: { tokenRecord: TokenRecord 
             A focused chat about what Jason can build, automate, or clarify for your business.
           </p>
         </header>
-        <ChatShell opener={opener} tokenRecord={tokenRecord} />
+        <ChatShell openingContext={openingContext} tokenRecord={tokenRecord} />
       </div>
     </main>
   );
