@@ -21,10 +21,11 @@ test('session route creates a session for a valid token', async () => {
   const payload = await response.json();
   assert.equal(payload.ok, true);
   assert.equal(typeof payload.sessionId, 'string');
-  assert.equal(payload.messages.length, 1);
+  assert.equal(typeof payload.openingContext?.opener, 'string');
+  assert.equal(typeof payload.openingContext?.label, 'string');
 });
 
-test('chat route returns 404 for an unknown session', async () => {
+test('chat route returns 401 for an unknown session', async () => {
   resetSessions();
   process.env.SESSION_SECRET = 'test-session-secret';
   process.env.TOKEN_PEPPER = 'test-token-pepper';
@@ -38,7 +39,8 @@ test('chat route returns 404 for an unknown session', async () => {
     }),
   );
 
-  assert.equal(response.status, 404);
+  assert.equal(response.status, 401);
   const payload = await response.json();
   assert.equal(payload.ok, false);
+  assert.equal(payload.message, 'A valid session is required.');
 });

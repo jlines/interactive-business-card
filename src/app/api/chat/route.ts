@@ -1,32 +1,76 @@
-import { z } from 'zod';
-
+import { sendChatRequestSchema } from '@/lib/contracts/chat';
 import { sendChatTurn } from '@/lib/chat/service';
+import type { ApiError, SendChatResponse } from '@/types/api';
 
-const sendChatSchema = z.object({
-  sessionId: z.string().min(1),
-  message: z.string().min(1),
-});
+const invalidRequestResponse: ApiError = {
+  ok: false,
+  message: 'Expected a sessionId and message.',
+};
+
+const unauthorizedResponse: ApiError = {
+  ok: false,
+  message: 'A valid session is required.',
+};
+
+const unavailableResponse: ApiError = {
+  ok: false,
+  message: 'The chat service is unavailable.',
+};
+
+async function parseJsonSafely(request: Request): Promise<unknown | null> {
+  try {
+    return await request.json();
+  } catch {
+    return null;
+  }
+}
+
+function isAuthorizationFailure(error: unknown): boolean {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+
+  return /unknown session|valid session is required/i.test(error.message);
+}
 
 export async function POST(request: Request) {
-  const parsed = sendChatSchema.safeParse(await request.json());
+  const payload = await parseJsonSafely(request);
+
+  if (payload === null) {
+    return Response.json(invalidRequestResponse, { status: 400 });
+  }
+
+  const parsed = sendChatRequestSchema.safeParse(payload);
 
   if (!parsed.success) {
-    return Response.json({ ok: false, message: 'Expected a sessionId and message.' }, { status: 400 });
+    return Response.json(invalidRequestResponse, { status: 400 });
+  }
+
+  const message = parsed.data.message.trim();
+
+  if (!message) {
+    return Response.json(invalidRequestResponse, { status: 400 });
   }
 
   try {
-    const result = await sendChatTurn(parsed.data);
+    const result = await sendChatTurn({
+      sessionId: parsed.data.sessionId,
+      message,
+    });
 
-    return Response.json({
+    const response: SendChatResponse = {
       ok: true,
       sessionId: result.session.id,
       message: result.assistantMessage,
       messages: result.session.messages,
-    });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Unable to continue the chat.';
-    const status = /unknown session/i.test(message) ? 404 : 500;
+    };
 
-    return Response.json({ ok: false, message }, { status });
+    return Response.json(response);
+  } catch (error) {
+    if (isAuthorizationFailure(error)) {
+      return Response.json(unauthorizedResponse, { status: 401 });
+    }
+
+    return Response.json(unavailableResponse, { status: 502 });
   }
 }
