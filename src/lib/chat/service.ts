@@ -9,7 +9,7 @@ export async function sendChatTurn({ sessionId, message }: { sessionId: string; 
   const session = await getSession(sessionId);
 
   if (!session) {
-    throw new Error(`Unknown session: ${sessionId}`);
+    throw new Error('A valid session is required.');
   }
 
   const userMessage: ChatMessage = {

@@ -1,32 +1,53 @@
-import { z } from 'zod';
-
-import { createSession } from '@/lib/session/store';
+import { createSessionRequestSchema } from '@/lib/contracts/session';
 import { validateEntryToken } from '@/lib/auth/token';
+import { buildOpeningContext } from '@/lib/session/opening';
+import { createSession } from '@/lib/session/store';
+import type { ApiError, CreateSessionResponse } from '@/types/api';
 
-const createSessionSchema = z.object({
-  token: z.string().min(1),
-});
+const failClosedResponse: ApiError = {
+  ok: false,
+  message: 'This entry link is unavailable.',
+};
+
+async function parseJsonSafely(request: Request): Promise<unknown | null> {
+  try {
+    return await request.json();
+  } catch {
+    return null;
+  }
+}
 
 export async function POST(request: Request) {
-  const parsed = createSessionSchema.safeParse(await request.json());
+  const payload = await parseJsonSafely(request);
 
-  if (!parsed.success) {
-    return Response.json({ ok: false, message: 'Expected a token.' }, { status: 400 });
+  if (payload === null) {
+    return Response.json(failClosedResponse, { status: 401 });
   }
 
-  const tokenResult = await validateEntryToken(parsed.data.token);
+  const parsed = createSessionRequestSchema.safeParse(payload);
+
+  if (!parsed.success) {
+    return Response.json(failClosedResponse, { status: 401 });
+  }
+
+  const token = parsed.data.token.trim();
+
+  if (!token) {
+    return Response.json(failClosedResponse, { status: 401 });
+  }
+
+  const tokenResult = await validateEntryToken(token);
 
   if (!tokenResult.valid) {
-    return Response.json({ ok: false, message: 'This entry token is invalid, expired, or revoked.' }, { status: 404 });
+    return Response.json(failClosedResponse, { status: 401 });
   }
 
   const session = await createSession(tokenResult.record);
-
-  return Response.json({
+  const response: CreateSessionResponse = {
     ok: true,
     sessionId: session.id,
-    tokenId: session.tokenId,
-    messages: session.messages,
-    tokenRecord: session.tokenRecord,
-  });
+    openingContext: buildOpeningContext(tokenResult.record),
+  };
+
+  return Response.json(response);
 }
