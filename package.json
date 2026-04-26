@@ -1,0 +1,31 @@
+{
+  "name": "interactive-business-card",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test tests/**/*.test.ts",
+    "tokens:seed": "node --import tsx scripts/seed-demo-token.ts",
+    "tokens:generate": "node --import tsx scripts/generate-token.ts",
+    "tokens:revoke": "node --import tsx scripts/revoke-token.ts"
+  },
+  "dependencies": {
+    "next": "15.3.0",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "zod": "3.24.3"
+  },
+  "devDependencies": {
+    "@types/node": "22.15.3",
+    "@types/react": "19.1.2",
+    "@types/react-dom": "19.1.2",
+    "eslint": "9.25.1",
+    "eslint-config-next": "15.3.0",
+    "tsx": "4.19.3",
+    "typescript": "5.8.3"
+  }
+}
