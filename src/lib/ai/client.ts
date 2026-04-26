@@ -21,35 +21,45 @@ export type PromptBundle = {
 
 export async function sendChatToProvider(promptBundle: PromptBundle) {
   const runtimeConfig = getProviderRuntimeConfig(process.env);
+  const failLoudly = process.env.NODE_ENV === 'development' || process.env.FAIL_LOUD_PROVIDER_ERRORS === 'true';
 
-  if (runtimeConfig.provider === 'openrouter' && runtimeConfig.canCallProvider && runtimeConfig.openRouterApiKey) {
-    try {
-      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${runtimeConfig.openRouterApiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: runtimeConfig.openRouterModel,
-          messages: [
-            {
-              role: 'system',
-              content: [
-                promptBundle.systemPrompt,
-                promptBundle.businessContext,
-                promptBundle.personalizationNotes,
-              ].join('\n\n'),
-            },
-            ...promptBundle.messages.map((message) => ({
-              role: message.role,
-              content: message.content,
-            })),
-          ],
-        }),
-      });
+  if (runtimeConfig.provider === 'openrouter') {
+    if (!runtimeConfig.canCallProvider || !runtimeConfig.openRouterApiKey) {
+      if (failLoudly) {
+        throw new Error('OpenRouter is selected but OPENROUTER_API_KEY is missing or empty.');
+      }
+    } else {
+      try {
+        const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${runtimeConfig.openRouterApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: runtimeConfig.openRouterModel,
+            messages: [
+              {
+                role: 'system',
+                content: [
+                  promptBundle.systemPrompt,
+                  promptBundle.businessContext,
+                  promptBundle.personalizationNotes,
+                ].join('\n\n'),
+              },
+              ...promptBundle.messages.map((message) => ({
+                role: message.role,
+                content: message.content,
+              })),
+            ],
+          }),
+        });
 
-      if (response.ok) {
+        if (!response.ok) {
+          const body = await response.text().catch(() => '');
+          throw new Error(`OpenRouter request failed with status ${response.status}${body ? `: ${body}` : ''}`);
+        }
+
         const payload = await response.json() as {
           choices?: Array<{ message?: { content?: string } }>;
         };
@@ -57,21 +67,33 @@ export async function sendChatToProvider(promptBundle: PromptBundle) {
         if (content) {
           return content;
         }
+
+        throw new Error('OpenRouter returned no assistant content.');
+      } catch (error) {
+        if (failLoudly) {
+          throw error;
+        }
       }
-    } catch {
-      // Fall through to grounded local reply.
     }
   }
 
-  if (runtimeConfig.provider === 'bedrock' && runtimeConfig.canCallProvider) {
-    try {
-      return await sendBedrockChat({
-        promptBundle,
-        runtimeConfig,
-        client: bedrockClientForTests ?? undefined,
-      });
-    } catch {
-      // Fall through to grounded local reply.
+  if (runtimeConfig.provider === 'bedrock') {
+    if (!runtimeConfig.canCallProvider) {
+      if (failLoudly) {
+        throw new Error('Bedrock is selected but BEDROCK_REGION or BEDROCK_MODEL_ID is missing.');
+      }
+    } else {
+      try {
+        return await sendBedrockChat({
+          promptBundle,
+          runtimeConfig,
+          client: bedrockClientForTests ?? undefined,
+        });
+      } catch (error) {
+        if (failLoudly) {
+          throw error;
+        }
+      }
     }
   }
 
