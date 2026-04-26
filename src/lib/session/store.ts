@@ -4,7 +4,7 @@ import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 
 import { buildInitialOpener } from '@/lib/session/opening';
-import { createDynamoSessionRepository, createMemorySessionRepository, type SessionRepository } from '@/lib/session/repository';
+import { createDynamoSessionRepository, createFileSessionRepository, createMemorySessionRepository, type SessionRepository } from '@/lib/session/repository';
 import type { ChatSession } from '@/lib/session/types';
 import type { ChatMessage, TokenRecord } from '@/types/chat';
 
@@ -48,12 +48,14 @@ function getSessionRepository(): SessionRepository {
 
   const tableName = process.env.SESSION_TABLE_NAME?.trim();
 
+  const ttlHours = Number(process.env.SESSION_TTL_HOURS ?? '168');
+
   if (!tableName) {
-    sessionRepository = createMemorySessionRepository();
+    const localFilePath = process.env.LOCAL_SESSION_FILE?.trim() || 'runtime/interactive-business-card-sessions.json';
+    sessionRepository = createFileSessionRepository({ filePath: localFilePath, ttlHours });
     return sessionRepository;
   }
 
-  const ttlHours = Number(process.env.SESSION_TTL_HOURS ?? '168');
   const client = DynamoDBDocumentClient.from(new DynamoDBClient({
     region: process.env.AWS_REGION ?? process.env.BEDROCK_REGION ?? 'us-east-1',
   }));

@@ -1,3 +1,6 @@
+import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
+import { dirname, resolve } from 'node:path';
+
 import { PutCommand, GetCommand } from '@aws-sdk/lib-dynamodb';
 
 import type { ChatMessage, TokenRecord } from '@/types/chat';
@@ -46,6 +49,96 @@ export function createMemorySessionRepository(): SessionRepository {
       return updatedSession;
     },
   };
+}
+
+export function createFileSessionRepository({
+  filePath,
+  ttlHours,
+}: {
+  filePath: string;
+  ttlHours: number;
+}): SessionRepository {
+  const resolvedPath = resolve(filePath);
+
+  return {
+    async create(session) {
+      const store = await readSessionStore(resolvedPath);
+      const now = new Date().toISOString();
+      const persisted = toPersistedSession(session, ttlHours, now, now);
+      store[persistKey(session.id)] = persisted;
+      await writeSessionStore(resolvedPath, store);
+      return fromPersistedSession(persisted);
+    },
+    async get(sessionId) {
+      const store = await readSessionStore(resolvedPath);
+      const persisted = store[persistKey(sessionId)];
+
+      if (!persisted) {
+        return null;
+      }
+
+      if (persisted.expiresAtEpoch <= Math.floor(Date.now() / 1000)) {
+        delete store[persistKey(sessionId)];
+        await writeSessionStore(resolvedPath, store);
+        return null;
+      }
+
+      return fromPersistedSession(persisted);
+    },
+    async appendMessages(sessionId, nextMessages) {
+      const store = await readSessionStore(resolvedPath);
+      const persisted = store[persistKey(sessionId)];
+
+      if (!persisted) {
+        throw new Error(`Unknown session: ${sessionId}`);
+      }
+
+      const current = fromPersistedSession(persisted);
+      const updated: ChatSession = {
+        ...current,
+        messages: [...current.messages, ...nextMessages],
+      };
+      const now = new Date().toISOString();
+      const createdAt = persisted.createdAt;
+      const nextPersisted = toPersistedSession(updated, ttlHours, createdAt, now);
+      store[persistKey(sessionId)] = nextPersisted;
+      await writeSessionStore(resolvedPath, store);
+
+      return fromPersistedSession(nextPersisted);
+    },
+  };
+}
+
+type FileSessionStore = Record<string, PersistedChatSession>;
+
+function persistKey(sessionId: string) {
+  return `session:${sessionId}`;
+}
+
+async function readSessionStore(filePath: string): Promise<FileSessionStore> {
+  try {
+    const raw = await readFile(filePath, 'utf8');
+    const parsed = JSON.parse(raw) as unknown;
+
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      return {};
+    }
+
+    return parsed as FileSessionStore;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+      return {};
+    }
+
+    throw error;
+  }
+}
+
+async function writeSessionStore(filePath: string, store: FileSessionStore): Promise<void> {
+  await mkdir(dirname(filePath), { recursive: true });
+  const tempPath = `${filePath}.${process.pid}.${Date.now()}.tmp`;
+  await writeFile(tempPath, `${JSON.stringify(store, null, 2)}\n`, 'utf8');
+  await rename(tempPath, filePath);
 }
 
 export function createDynamoSessionRepository({
