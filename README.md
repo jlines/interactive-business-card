@@ -137,5 +137,5 @@ ollama pull llama3.1:8b
 ## Deployment
 - AWS CDK deployment scaffolding lives under `infra/`.
 - The current setup packages the Next.js app as a Lambda container image, fronts it with CloudFront, provisions DynamoDB tables for tokens/sessions, and can attach WAF + origin protection.
-- Use `npm run tokens:seed`, `npm run tokens:generate`, and `npm run tokens:revoke` to manage entry tokens against the configured backend.
+- Use `yarn tokens:seed`, `yarn tokens:generate`, and `yarn tokens:revoke` to manage entry tokens against the configured backend.
 - See `docs/deployment/aws-cdk.md` for required Secrets Manager keys, synth-time env vars, and deploy commands.

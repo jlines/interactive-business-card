@@ -69,21 +69,21 @@ export LAMBDA_TIMEOUT_SECONDS=30
 ## 3. Install dependencies
 
 ```bash
-npm install
+yarn install
 ```
 
 ## 4. Verify locally
 
 ```bash
-npm run test
-npm run typecheck
-npm run cdk:synth
+yarn test
+yarn typecheck
+yarn cdk:synth
 ```
 
 ## 5. Deploy
 
 ```bash
-npm run cdk:deploy
+yarn cdk:deploy
 ```
 
 CDK outputs the CloudFront domain, Function URL, and the provisioned DynamoDB table names. The stack also injects the CloudFront-facing base URL, session/table names, and origin-protection values into the Lambda runtime.
@@ -91,9 +91,9 @@ CDK outputs the CloudFront domain, Function URL, and the provisioned DynamoDB ta
 ## 6. Seed or generate entry tokens
 
 ```bash
-npm run tokens:seed
-npm run tokens:generate -- --label "Ops lead" --audience "operations"
-npm run tokens:revoke -- --token demo-card
+yarn tokens:seed
+yarn tokens:generate -- --label "Ops lead" --audience "operations"
+yarn tokens:revoke -- --token demo-card
 ```
 
 ## Notes

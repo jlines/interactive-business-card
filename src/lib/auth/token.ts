@@ -47,9 +47,16 @@ export function getConfiguredTokenStore(): TokenStore {
     return tokenStore;
   }
 
-  const client = DynamoDBDocumentClient.from(new DynamoDBClient({
-    region: process.env.AWS_REGION ?? process.env.BEDROCK_REGION ?? 'us-east-1',
-  }));
+  const client = DynamoDBDocumentClient.from(
+    new DynamoDBClient({
+      region: process.env.AWS_REGION ?? process.env.BEDROCK_REGION ?? 'us-east-1',
+    }),
+    {
+      marshallOptions: {
+        removeUndefinedValues: true,
+      },
+    },
+  );
 
   tokenStore = createDynamoTokenStore({ client, tableName, pepper });
   return tokenStore;

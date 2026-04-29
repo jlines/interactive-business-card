@@ -12,10 +12,18 @@
     "typecheck:cdk": "tsc -p tsconfig.cdk.json --noEmit",
     "test": "node --import tsx --test tests/**/*.test.ts",
     "cdk": "cdk",
+    "cdk:list": "cdk list",
     "cdk:synth": "cdk synth",
     "cdk:deploy": "cdk deploy",
+    "cdk:dev:list": "bash -lc 'set -a; source .env.cdk.dev; set +a; cdk list'",
+    "cdk:dev:synth": "bash -lc 'set -a; source .env.cdk.dev; set +a; cdk synth'",
+    "cdk:dev:deploy": "bash -lc 'set -a; source .env.cdk.dev; set +a; cdk deploy'",
+    "cdk:prod:list": "bash -lc 'set -a; source .env.cdk.prod; set +a; cdk list'",
+    "cdk:prod:synth": "bash -lc 'set -a; source .env.cdk.prod; set +a; cdk synth'",
+    "cdk:prod:deploy": "bash -lc 'set -a; source .env.cdk.prod; set +a; cdk deploy'",
     "tokens:seed": "node --import tsx scripts/seed-demo-token.ts",
     "tokens:generate": "node --import tsx scripts/generate-token.ts",
+    "tokens:dev:generate": "bash -lc 'set -a; source .env.cdk.dev; set +a; node --import tsx scripts/generate-token.ts'",
     "tokens:revoke": "node --import tsx scripts/revoke-token.ts"
   },
   "dependencies": {
